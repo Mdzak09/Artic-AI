@@ -35,10 +35,19 @@ public final class AdminServlet extends HttpServlet {
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
             throws IOException, ServletException {
+        String servletPath = request.getServletPath();
+        if ("/admin".equals(servletPath)
+                && !request.getParameterMap().containsKey("scope")) {
+            String contextPath = request.getContextPath();
+            int separator = contextPath.lastIndexOf('/');
+            String polarionContext = separator > 0 ? contextPath.substring(0, separator) : "/polarion";
+            response.sendRedirect(response.encodeRedirectURL(
+                    polarionContext + "/#/administration/arctic-ai/settings"));
+            return;
+        }
         if (!authorizeAdmin(request, response)) return;
 
-        String servletPath = request.getServletPath();
-        if (servletPath != null && servletPath.startsWith("/admin")) {
+        if ("/admin".equals(servletPath)) {
             renderPage(request, response);
             return;
         }
