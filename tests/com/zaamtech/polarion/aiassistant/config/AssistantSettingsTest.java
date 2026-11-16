@@ -20,6 +20,11 @@ public final class AssistantSettingsTest {
         check("AI".equals(defaults.getName()), "default assistant name");
         check("Baxter".equals(settings("Baxter", "#1280A6", "420", true).getName()),
                 "valid assistant name Baxter is accepted");
+        check("Baxter".equals(AssistantSettings.fromProperties(
+                settings("Baxter", "#1280A6", "420", true).toProperties()).getName()),
+                "custom assistant name survives settings persistence round trip");
+        check(40 == settings("A".repeat(40), "#1280A6", "420", true).getName().length(),
+                "40-character assistant name is accepted");
         check("#1280A6".equals(defaults.getAccentColor()), "default accent");
         check(defaults.isShowHeaderButton(), "header button enabled by default");
         check(AssistantSettings.fromProperties(new Properties()).isShowHeaderButton(), "missing button setting defaults enabled");
@@ -35,6 +40,8 @@ public final class AssistantSettingsTest {
     }
 
     private static void validatesUserSuppliedValues() {
+        expectInvalid(() -> settings("", "#1280A6", "420", true));
+        expectInvalid(() -> settings("A".repeat(41), "#1280A6", "420", true));
         expectInvalid(() -> settings("<script>alert(1)</script>", "#1280A6", "420", true));
         expectInvalid(() -> settings("Arctic AI", "red", "420", true));
         expectInvalid(() -> settings("Arctic AI", "#FFFFFF", "420", true));

@@ -163,36 +163,15 @@
             : (settings.endpoint && settings.model ? 'Real provider configured' : 'Real provider incomplete');
         document.getElementById('diagnostic-provider').textContent = 'Not tested';
 
-        const brandDetected = findBrand();
-        const placementText = settings.headerPlacement === 'branding'
-            ? (brandDetected ? 'Beside detected branding' : 'Brand not detected; right-side fallback')
-            : 'Fixed near the right side of the ribbon';
-        document.getElementById('diagnostic-header').textContent = placementText;
+        document.getElementById('diagnostic-header').textContent =
+            'Before SIEMENS branding when the Navigation Header is available';
         const warning = document.getElementById('header-warning');
-        warning.hidden = settings.headerPlacement !== 'branding' || brandDetected;
-        warning.textContent = warning.hidden
-            ? ''
-            : 'This Polarion theme did not expose a recognizable Siemens/Polarion logo in the header. The assistant uses its right-side fallback placement.';
+        warning.hidden = false;
+        warning.textContent = 'Placement uses Polarion internal header markup through scriptInjection.mainHead; the button stays hidden until the native SIEMENS branding is available.';
 
         updateAccessVisibility();
         updateProviderVisibility();
         updateAppearancePreview();
-    }
-
-    function findBrand() {
-        const candidates = document.querySelectorAll(
-            'header img, header a, [role="banner"] img, [role="banner"] a, img[alt*="Siemens" i], img[alt*="Polarion" i], img[src*="siemens" i], img[src*="polarion" i]'
-        );
-        return Array.from(candidates).some((element) => {
-            const label = [
-                element.alt,
-                element.title,
-                element.getAttribute('aria-label'),
-                element.getAttribute('src'),
-                element.href
-            ].filter(Boolean).join(' ');
-            return /siemens|polarion/i.test(label);
-        });
     }
 
     function updateAccessVisibility() {

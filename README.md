@@ -7,7 +7,7 @@ Independent Eclipse PDE/OSGi extension for Polarion. The installed local SDK exp
 - Polarion SDK API bundle version: `3.25.6` (SDK `changes.txt`); installed Tomcat bundle: `9.0.84.202505302230`.
 - Polarion launcher uses `C:\Program Files\Java\jdk-17\bin\java.exe`; use Java 17 for this bundle.
 - The installed Polarion 3.25.6 `portal.tomcat` bundle does not provide `DoAsFilter` to extension webapps, although some shipped descriptors still reference it. This app omits that unavailable filter and protects its `/api/*` endpoint with the Polarion `user` role; the endpoint does not access Polarion APIs or data.
-- The SDK does not document a global-header action extension. Siemens' documented HTML snippet injector is `scriptInjection.mainHead` (also `com.siemens.polarion.scriptInjection.mainHead` in `polarion.properties`). The AI button is fixed to the top ribbon with a 12vw right offset, placing it roughly 10–15% in from the right edge. Polarion does not expose a stable global-header action API, so ribbon height may vary by theme.
+- The inspected Polarion 3.25.6 UI bundle contributes web applications, while `com.polarion.portal.tomcat` defines `webapps` and `externalJsFile`; these metadata do not expose a Navigation Header action contribution. The installed Quick Create archive configures the contents of that dialog, not unrelated header actions. The documented `scriptInjection.mainHead` property (also `com.siemens.polarion.scriptInjection.mainHead` in `polarion.properties`) loads `assistant.js`; this implementation locates the visible Siemens branding at runtime and inserts the AI `<button>` immediately before it in the same parent. This is an internal Polarion DOM integration, not a guaranteed public header API. It depends on Polarion's branding markup and may need adjustment after UI changes.
 
 ## Import and build
 
@@ -23,7 +23,7 @@ Independent Eclipse PDE/OSGi extension for Polarion. The installed local SDK exp
 3. Remove `C:\Polarion\data\workspace\.config` while the server is stopped so OSGi rediscovers the extension, then start Polarion. Check startup logs for bundle resolution errors.
 4. In **Global Administration > System > Configuration Properties**, set `scriptInjection.mainHead` to the one-line value from `config/scriptInjection.mainHead.html`. This is an administrator-managed configuration change. It injects only a same-origin script reference; the script and UI assets are served by this bundle.
 5. Apply/reload the configuration and restart Polarion only if that Polarion version's configuration UI requests it. The `polarion.properties` alternative is `com.siemens.polarion.scriptInjection.mainHead=<script src="/polarion/aiassistant/assets/assistant.js" defer></script>`; back up the file before editing. Neither setting is changed by this project.
-6. Browse to Polarion and reload. The **AI** button should appear on the top ribbon about 12% in from the right edge. Click it, send a prompt, use **New chat**, close and reopen. Prompt `mock error` to exercise Retry.
+6. Browse to Polarion and reload. The configured assistant name appears immediately before SIEMENS branding when the native header is present, including Administration pages for users authorized to use the assistant. The button remains absent while configuration or the header is unavailable. Click it, send a prompt, use **New chat**, close and reopen. Prompt `mock error` to exercise Retry.
 
 ## Provider configuration
 
@@ -78,9 +78,9 @@ The installed documented security API exposes global roles and a user's role ass
 2. For a controlled installation, stop Polarion and copy the generated JAR into the existing Polarion extension plug-in directory described under **Deploy**. Do not copy it into the product's `plugins` directory. The new `META-INF/hivemodule.xml` is inside the JAR and registers the administration extender and config data handler.
 3. Clear the OSGi extension discovery cache as documented under **Deploy**, restart Polarion, and verify there are no bundle/hivemodule errors in the server log.
 4. Open **Global Administration > Arctic AI**. Only Global Administrators can open the page. Configure general settings, role access, appearance, and provider settings; save. `scriptInjection.mainHead` remains necessary for injecting the existing AI header/chat script. Use the same-origin script snippet documented under **Deploy**; it is separate from the administration extender and is not changed by this project.
-5. The button renders from safe defaults immediately, then applies `/api/config` when available; configuration refreshes apply administrator changes on open pages. A successful configuration response hides the button when it is disabled, hidden, or the current user is unauthorized. Every chat POST independently re-loads configuration and enforces authentication, global enabled state, and the saved role policy on the server. Chat input is limited to 12,000 characters and request bodies to 16 KB. The plugin does not read page content automatically.
+5. The button waits for authorized `/api/config` and the native Siemens branding before rendering; configuration refreshes apply administrator changes on open pages. A successful configuration response hides the button when it is disabled, hidden, or the current user is unauthorized. Every chat POST independently re-loads configuration and enforces authentication, global enabled state, and the saved role policy on the server. Chat input is limited to 12,000 characters and request bodies to 16 KB. The plugin does not read page content automatically.
 
-Appearance settings include System/Light/Dark, validated accent color, initial width (360–600 px, clamped to half the viewport), and right-side or branding-based header placement. Branding placement uses theme-sensitive DOM detection and falls back to a fixed right-side position when the logo cannot be identified. A user's drag resize remains temporary and capped at half the viewport.
+Appearance settings include System/Light/Dark, validated accent color, and initial width (360–600 px, clamped to half the viewport). The saved legacy header-placement value is retained for compatibility; the AI button is inserted before native Siemens branding and has no floating fallback. A user's drag resize remains temporary and capped at half the viewport.
 
 ### Build validation and limits
 
@@ -91,7 +91,7 @@ Validated locally on the installed Polarion 3.25.6 API and JDK 17:
 - Parsed the project, plugin, web, and Hivemind XML files — passed.
 - Inspected the newly built JAR and confirmed required servlet classes, administration resources, assistant assets, and Hivemind registration are present.
 
-No browser-based Polarion integration test or live-server deployment was performed. In particular, confirm the extender is visible in the exact deployed Global Administration navigation and verify theme-specific header placement after installation. Group-based rules are unsupported with the installed documented APIs as explained above.
+No browser-based Polarion integration test or live-server deployment was performed. The header integration depends on Polarion's internal rendered DOM and still requires verification against the running Navigation Header after a controlled development-runtime load. Group-based rules are unsupported with the installed documented APIs as explained above.
 
 ### Rollback
 

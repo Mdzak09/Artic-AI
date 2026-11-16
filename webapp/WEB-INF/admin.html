@@ -97,13 +97,11 @@
                             <span class="range-field"><input id="sidebarWidth" name="sidebarWidth" type="range" min="360" max="600" step="10"><output id="width-value"></output></span>
                             <small>Users can still resize their open panel.</small>
                         </label>
-                        <label class="field" for="headerPlacement">
+                        <label class="field">
                             <span>Header button placement</span>
-                            <select id="headerPlacement" name="headerPlacement">
-                                <option value="right">Fixed near the right side of the top ribbon</option>
-                                <option value="branding">Beside detected Siemens/Polarion branding</option>
-                            </select>
-                            <small>Branding placement depends on theme-specific header markup.</small>
+                            <strong>Immediately before SIEMENS branding</strong>
+                            <input id="headerPlacement" name="headerPlacement" type="hidden" value="right">
+                            <small>The AI button waits for the native Navigation Header and follows its SIEMENS branding through navigation. This integration depends on Polarion's internal header markup.</small>
                         </label>
                         <div class="preview-wrap">
                             <span class="field-caption"><strong>Preview Changes</strong><small>Preview only; changes become live after saving.</small></span>

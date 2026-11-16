@@ -14,6 +14,14 @@
     const namespace = 'zaam-polarion-ai';
     const api = '/polarion/aiassistant/api/chat';
 
+    let assistantButton = null;
+    let assistantButtonStyle = null;
+    let panelHost = null;
+    let uiGeneration = 0;
+    let reconcileScheduled = false;
+    let headerObserver = null;
+    let discoveryObserver = null;
+    let observedHeaderAnchor;
     let panel;
     let log;
     let input;
@@ -22,10 +30,10 @@
     let last = '';
     let history = [];
     let settings = {
-        visible: true,
+        visible: false,
         enabled: true,
         showHeaderButton: true,
-        name: 'AI',
+        name: '',
         theme: 'system',
         accentColor: '#1280A6',
         sidebarWidth: 420,
@@ -38,33 +46,82 @@
     // --------------------------------------------------
 
     function init() {
-        if (!document.body || document.getElementById(namespace + '-host')) {
+        const branding = findSiemensBranding();
+        observeHeaderAnchor(branding);
+        if (!document.body || settings.visible === false
+                || settings.showHeaderButton === false || !branding) {
+            destroyAssistantUi();
             return;
         }
-        if (!settings || settings.visible === false) return;
 
-        const host = document.createElement('div');
-        host.id = namespace + '-host';
-
-        host.style.cssText = [
-            'position:fixed',
-            'top:7px',
-            'right:9vw',
-            'z-index:100001'
-        ].join(';');
-        if (settings.headerPlacement === 'branding') {
-            const brand = findBrandElement();
-            if (brand) {
-                const bounds = brand.getBoundingClientRect();
-                host.style.left = Math.max(8, bounds.right + 8) + 'px';
-                host.style.right = 'auto';
-                host.style.top = Math.max(4, bounds.top) + 'px';
-            }
+        if (!assistantButton || !panelHost) {
+            createAssistantUi();
+        }
+        if (!assistantButton || !panelHost || !branding.parentElement) {
+            destroyAssistantUi();
+            return;
         }
 
-        document.body.append(host);
+        // Siemens branding is the stable right edge of the native header.
+        // Insert directly before it, in its own live parent container.
+        if (assistantButton.parentElement !== branding.parentElement
+                || assistantButton.nextElementSibling !== branding) {
+            branding.parentElement.insertBefore(assistantButton, branding);
+        }
+        document.querySelectorAll('#' + namespace + '-button').forEach((element) => {
+            if (element !== assistantButton) element.remove();
+        });
+        if (panelHost.parentElement !== document.body) {
+            document.body.append(panelHost);
+        }
+    }
 
-        // Create an isolated Shadow DOM for the assistant UI.
+    function createAssistantUi() {
+        const button = document.createElement('button');
+        button.id = namespace + '-button';
+        button.type = 'button';
+        button.title = 'Open ' + assistantDisplayName();
+        button.setAttribute('aria-label', button.title);
+        button.setAttribute('aria-expanded', 'false');
+        button.textContent = assistantDisplayName();
+        button.style.setProperty('--assistant-accent', settings.accentColor);
+        button.style.setProperty('--assistant-accent-dark', darken(settings.accentColor));
+        assistantButton = button;
+
+        const buttonStyle = document.createElement('style');
+        buttonStyle.id = namespace + '-button-style';
+        buttonStyle.textContent = `
+            #${namespace}-button {
+                height: 34px;
+                margin: 0 2px;
+                padding: 0 12px;
+                border: 2px solid #f8fbff;
+                border-radius: 5px;
+                background: var(--assistant-accent);
+                color: #f8fbff;
+                font: 600 13px/1.4 Arial, sans-serif;
+                cursor: pointer;
+                transition: background-color 0.2s ease;
+                vertical-align: middle;
+            }
+            #${namespace}-button:hover { background: var(--assistant-accent-dark); }
+            #${namespace}-button:active { filter: brightness(0.9); }
+            #${namespace}-button:focus-visible {
+                outline: 2px solid var(--assistant-accent);
+                outline-offset: 2px;
+            }
+        `;
+        assistantButtonStyle = buttonStyle;
+        document.head.append(buttonStyle);
+
+        const host = document.createElement('div');
+        host.id = namespace + '-panel-host';
+        host.style.cssText = 'display:contents;position:static';
+        panelHost = host;
+        uiGeneration++;
+
+        // Keep the sidebar isolated in Shadow DOM; the button itself is a
+        // native button element in Polarion's light-DOM action container.
         const root = host.attachShadow({ mode: 'open' });
         root.host.style.setProperty('--assistant-accent', settings.accentColor);
         root.host.style.setProperty('--assistant-accent-dark', darken(settings.accentColor));
@@ -76,24 +133,21 @@
 
         root.append(css);
 
-        // AI toggle button.
-        const toggle = document.createElement('button');
-
-        toggle.className = 'entry';
-        toggle.title = 'Open ' + settings.name;
-        toggle.setAttribute('aria-label', 'Open ' + settings.name);
-        toggle.setAttribute('aria-expanded', 'false');
-
-        toggle.innerHTML = '<span aria-hidden="true">✦</span> ';
-        toggle.append(document.createTextNode(settings.name));
-
-        root.append(toggle);
-
         // Chat sidebar.
         panel = document.createElement('aside');
         panel.className = 'panel';
         panel.classList.add('theme-' + settings.theme);
         panel.style.width = Math.min(settings.sidebarWidth, window.innerWidth / 2) + 'px';
+        panel.style.position = 'fixed';
+        panel.style.zIndex = '99990';
+        panel.style.top = '56px';
+        panel.style.right = '12px';
+        panel.style.bottom = '12px';
+        panel.style.boxSizing = 'border-box';
+        panel.style.display = 'flex';
+        panel.style.flexDirection = 'column';
+        panel.style.transform = 'translateX(calc(100% + 16px))';
+        panel.style.visibility = 'hidden';
         panel.style.setProperty('--assistant-accent', settings.accentColor);
         panel.style.setProperty('--assistant-accent-dark', darken(settings.accentColor));
         panel.style.setProperty('--assistant-accent-text', '#fff');
@@ -178,16 +232,20 @@
 
             panel.classList.toggle('open', isOpen);
             panel.setAttribute('aria-hidden', String(!isOpen));
+            panel.style.transform = isOpen
+                ? 'translateX(0)'
+                : 'translateX(calc(100% + 16px))';
+            panel.style.visibility = isOpen ? 'visible' : 'hidden';
 
-            toggle.setAttribute('aria-expanded', String(isOpen));
+            button.setAttribute('aria-expanded', String(isOpen));
 
-            toggle.title = isOpen
+            button.title = isOpen
                 ? 'Close ' + settings.name
                 : 'Open ' + settings.name;
 
-            toggle.setAttribute(
+            button.setAttribute(
                 'aria-label',
-                toggle.title
+                button.title
             );
 
             if (isOpen) {
@@ -195,7 +253,7 @@
             }
         }
 
-        toggle.addEventListener('click', togglePanel);
+        button.addEventListener('click', togglePanel);
 
         panel.querySelector('.close').addEventListener(
             'click',
@@ -208,7 +266,7 @@
                 panel.classList.contains('open')
             ) {
                 togglePanel();
-                toggle.focus();
+            button.focus();
             }
         });
 
@@ -345,6 +403,91 @@
         status.classList.toggle('mock', settings.mode === 'mock');
 
         welcome();
+    }
+
+    function destroyAssistantUi() {
+        if (!assistantButton && !panelHost && !assistantButtonStyle) return;
+
+        assistantButton?.remove();
+        panelHost?.remove();
+        assistantButtonStyle?.remove();
+        assistantButton = null;
+        assistantButtonStyle = null;
+        panelHost = null;
+        panel = null;
+        log = null;
+        input = null;
+        send = null;
+        pending = false;
+        uiGeneration++;
+    }
+
+    function observeHeaderAnchor(anchor) {
+        if (!headerObserver || anchor === observedHeaderAnchor) return;
+        headerObserver.disconnect();
+        discoveryObserver.disconnect();
+        observedHeaderAnchor = anchor;
+        if (!anchor) {
+            discoveryObserver.observe(document.documentElement, {
+                childList: true,
+                subtree: true
+            });
+            return;
+        }
+        for (let node = anchor; node; node = node.parentElement) {
+            headerObserver.observe(node, {
+                childList: true,
+                subtree: node === anchor,
+                attributes: true,
+                characterData: node === anchor,
+                attributeFilter: ['alt', 'aria-hidden', 'aria-label', 'class', 'hidden', 'src', 'style', 'title']
+            });
+        }
+    }
+
+    function findSiemensBranding() {
+        const candidates = Array.from(document.querySelectorAll(
+            'a, button, img, svg, [role="img"], [aria-label], [title], span, div'
+        )).filter((element) => {
+            if (element.id === namespace + '-button' || element.closest('#' + namespace + '-panel-host')) return false;
+            const labels = [
+                element.getAttribute('aria-label'), element.getAttribute('title'),
+                element.getAttribute('alt'), element.textContent
+            ].filter(Boolean).map((value) => String(value).trim());
+            const source = element.getAttribute('src') || '';
+            const branded = labels.some((label) => /^SIEMENS$/i.test(label))
+                || /(?:siemens.*logo|logo.*siemens)/i.test(source);
+            if (!branded || element.closest('[hidden], [aria-hidden="true"]')) return false;
+            const rect = element.getBoundingClientRect();
+            const style = window.getComputedStyle(element);
+            return rect.width > 0 && rect.height > 0
+                && style.display !== 'none' && style.visibility !== 'hidden'
+                && style.visibility !== 'collapse';
+        });
+
+        // Prefer the smallest visible Siemens mark and its link wrapper, when present.
+        candidates.sort((left, right) => {
+            const leftArea = left.getBoundingClientRect().width * left.getBoundingClientRect().height;
+            const rightArea = right.getBoundingClientRect().width * right.getBoundingClientRect().height;
+            return leftArea - rightArea;
+        });
+        const mark = candidates[0];
+        return mark ? (mark.closest('a') || mark) : null;
+    }
+
+    function assistantDisplayName() {
+        return typeof settings.name === 'string' && settings.name.trim()
+            ? settings.name.trim()
+            : 'AI';
+    }
+
+    function scheduleReconcile() {
+        if (reconcileScheduled) return;
+        reconcileScheduled = true;
+        window.setTimeout(() => {
+            reconcileScheduled = false;
+            init();
+        }, 50);
     }
 
     // --------------------------------------------------
@@ -719,6 +862,7 @@
         if (pending) {
             return;
         }
+        const requestGeneration = uiGeneration;
 
         const value = retry
             ? last
@@ -776,6 +920,8 @@
 
             const data = await response.json();
 
+            if (requestGeneration !== uiGeneration) return;
+
             waiting.remove();
 
             if (!response.ok) {
@@ -796,6 +942,7 @@
             addMessage(reply, 'assistant');
 
         } catch (error) {
+            if (requestGeneration !== uiGeneration) return;
             waiting.remove();
 
             const errorContainer =
@@ -826,11 +973,11 @@
             log.append(errorContainer);
 
         } finally {
-            pending = false;
-
-            send.disabled = !input.value.trim();
-
-            log.scrollTop = log.scrollHeight;
+            if (requestGeneration === uiGeneration) {
+                pending = false;
+                send.disabled = !input.value.trim();
+                log.scrollTop = log.scrollHeight;
+            }
         }
     }
 
@@ -838,8 +985,8 @@
     // Start the assistant
     // --------------------------------------------------
 
-    // Render safe defaults immediately. A temporary config API failure must not
-    // make the header entry disappear; chat remains protected by ChatServlet.
+    // The UI stays hidden until the authorized configuration and native
+    // Siemens branding anchor are both available.
     init();
 
     function refreshConfiguration() {
@@ -852,12 +999,12 @@
         }).then((config) => {
             if (config.visible === false) {
                 settings = { ...settings, ...config, visible: false };
-                document.getElementById(namespace + '-host')?.remove();
+                destroyAssistantUi();
                 return;
             }
             const nextSettings = { ...settings, ...config, visible: true };
             const changed = Object.keys(config).some((key) => settings[key] !== nextSettings[key]);
-            if (changed) document.getElementById(namespace + '-host')?.remove();
+            if (changed) destroyAssistantUi();
             settings = nextSettings;
             init();
         }).catch(() => {});
@@ -866,27 +1013,11 @@
     // Administrators' changes are reflected on open Polarion pages as well.
     window.setInterval(refreshConfiguration, 60000);
 
-    // If Polarion renders page content dynamically, retry
-    // initialization when the document structure changes.
-    const observer = new MutationObserver(() => {
-        init();
-    });
-
-    observer.observe(document.documentElement, {
-        childList: true,
-        subtree: true
-    });
-
-    function findBrandElement() {
-        const candidates = document.querySelectorAll(
-            'header img, header a, [role="banner"] img, [role="banner"] a, img[alt*="Siemens" i], img[alt*="Polarion" i], img[src*="siemens" i], img[src*="polarion" i]'
-        );
-        return Array.from(candidates).find((element) => {
-            const text = [element.alt, element.title, element.getAttribute('aria-label'),
-                element.getAttribute('src'), element.href].filter(Boolean).join(' ');
-            return /siemens|polarion/i.test(text);
-        });
-    }
+    // Discover the right edge of the native header while absent; when found,
+    // observe its subtree and ancestors to track Polarion header replacement.
+    discoveryObserver = new MutationObserver(scheduleReconcile);
+    headerObserver = new MutationObserver(scheduleReconcile);
+    observeHeaderAnchor(findSiemensBranding());
 
     function darken(hex) {
         const value = parseInt(hex.slice(1), 16);
