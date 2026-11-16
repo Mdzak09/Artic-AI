@@ -1,4 +1,5 @@
 :host {
+    display: contents;
     font: 13px/1.4 Arial, sans-serif;
     color: #253247;
     --assistant-accent: #1280a6;
@@ -6,31 +7,11 @@
     --assistant-accent-text: #fff;
 }
 
-/* AI header button */
-.entry {
-    height: 34px;
-    margin: 0 2px;
-    padding: 0 12px;
-    border: 2px solid #f8fbff;
-    border-radius: 5px;
-    background: var(--assistant-accent);
-    color: #f8fbff;
-    font-weight: 600;
-    cursor: pointer;
-    transition: background-color 0.2s ease;
-}
-
-.entry:hover {
-    background: var(--assistant-accent-dark);
-}
-
-.entry:active,
 .send:active {
     filter: brightness(0.9);
 }
 
 /* Keyboard accessibility */
-.entry:focus-visible,
 button:focus-visible,
 textarea:focus-visible {
     outline: 2px solid var(--assistant-accent);
@@ -424,11 +405,6 @@ textarea:focus-visible {
     background: #344252;
 }
 
-.theme-dark .entry {
-    background: var(--assistant-accent-dark);
-    color: var(--assistant-accent-text);
-}
-
 .theme-system {
     color-scheme: light dark;
 }
@@ -458,8 +434,4 @@ textarea:focus-visible {
         background: #294156;
     }
 
-    .theme-system .entry {
-        background: var(--assistant-accent-dark);
-        color: var(--assistant-accent-text);
-    }
 }
