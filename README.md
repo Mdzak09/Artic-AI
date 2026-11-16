@@ -60,7 +60,7 @@ After rebuilding, install the updated JAR following **Deploy** and restart Polar
 
 ## Arctic AI Global Administration
 
-This build adds an **Arctic AI** parent group with a **Settings** page beneath it in Polarion Global Administration. It uses the installed 3.25.6 `com.polarion.xray.webui.administrationPageExtenders` contribution with repository/global scope and links to the plugin's protected `/polarion/aiassistant/admin` page. The page and `/api/admin/*` endpoints require the Polarion `admin` web role; the assistant API requires an authenticated `user` or `admin` session. This implementation deliberately does not add `DoAsFilter`, which failed to load in the supplied Polarion 3.25.6 startup log.
+This build adds an **Arctic AI** parent group with a **Settings** page beneath it in Polarion Global Administration. It uses the installed 3.25.6 `com.polarion.xray.webui.administrationPageExtenders` contribution with repository/global scope and points Polarion to `/polarion/aiassistant/admin?scope=$scope$`. The scoped request is the extender's internal content resource; opening `/polarion/aiassistant/admin` directly redirects to `/polarion/#/administration/arctic-ai/settings`. The page and `/api/admin/*` endpoints require the Polarion `admin` web role; the assistant API requires an authenticated `user` or `admin` session. This implementation deliberately does not add `DoAsFilter`, which failed to load in the supplied Polarion 3.25.6 startup log.
 
 ### Settings and authorization
 
@@ -74,7 +74,7 @@ The installed documented security API exposes global roles and a user's role ass
 
 ### Administration and use
 
-1. Build with Java 17 using `powershell -ExecutionPolicy Bypass -File .\build.ps1` (set `POLARION_HOME` if needed). The script checks the installed Servlet, Polarion platform, repository, tracker, subterra, and portal-tomcat bundles, compiles against the APIs used by the implementation, runs the local settings/access checks, and packages the bundle. It does not deploy the JAR.
+1. Build with Java 17 using `powershell -ExecutionPolicy Bypass -File .\build.ps1`. Polarion home resolves from `-PolarionHome`, then `POLARION_HOME`, then `C:\Polarion`; JDK home resolves from `-JdkHome`, then `JAVA_HOME`, then `C:\Program Files\Java\jdk-17`. The script checks the installed SDK and Servlet, Polarion platform, repository, tracker, subterra, and portal-tomcat bundles, compiles against the APIs used by the implementation, runs the local settings/access checks, packages the bundle, and publishes compiled workspace classes to Eclipse's `bin/` output by default. Pass `-PublishWorkspaceClasses:$false` to skip that copy. It does not deploy the JAR.
 2. For a controlled installation, stop Polarion and copy the generated JAR into the existing Polarion extension plug-in directory described under **Deploy**. Do not copy it into the product's `plugins` directory. The new `META-INF/hivemodule.xml` is inside the JAR and registers the administration extender and config data handler.
 3. Clear the OSGi extension discovery cache as documented under **Deploy**, restart Polarion, and verify there are no bundle/hivemodule errors in the server log.
 4. Open **Global Administration > Arctic AI**. Only Global Administrators can open the page. Configure general settings, role access, appearance, and provider settings; save. `scriptInjection.mainHead` remains necessary for injecting the existing AI header/chat script. Use the same-origin script snippet documented under **Deploy**; it is separate from the administration extender and is not changed by this project.
@@ -86,10 +86,10 @@ Appearance settings include System/Light/Dark, validated accent color, initial w
 
 Validated locally on the installed Polarion 3.25.6 API and JDK 17:
 
-- `powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\build.ps1` — compiled the plugin, ran `AssistantSettingsTest` successfully, and created `dist\com.zaamtech.polarion.aiassistant_1.0.0.jar`.
-- `node --check` on `assistant.js` — passed.
-- Parsed `web.xml` and `src/META-INF/hivemodule.xml` as XML — passed.
-- Inspected the built JAR and confirmed it contains the hivemodule registration, admin servlet, admin page, and assistant script.
+- `powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\build.ps1 -PolarionHome C:\Polarion -JdkHome 'C:\Program Files\Java\jdk-17'` — compiled the plugin, ran `AssistantSettingsTest` successfully, and created `dist\com.zaamtech.polarion.aiassistant_1.0.0.jar`.
+- `node --check` on `assistant.js` and `admin.js` — passed.
+- Parsed the project, plugin, web, and Hivemind XML files — passed.
+- Inspected the newly built JAR and confirmed required servlet classes, administration resources, assistant assets, and Hivemind registration are present.
 
 No browser-based Polarion integration test or live-server deployment was performed. In particular, confirm the extender is visible in the exact deployed Global Administration navigation and verify theme-specific header placement after installation. Group-based rules are unsupported with the installed documented APIs as explained above.
 

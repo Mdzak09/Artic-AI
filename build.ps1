@@ -1,12 +1,34 @@
 param(
-    [string]$PolarionHome = $env:POLARION_HOME,
-    [string]$JdkHome = 'C:\Program Files\Java\jdk-17',
-    [switch]$PublishWorkspaceClasses
+    [string]$PolarionHome,
+    [string]$JdkHome,
+    [switch]$PublishWorkspaceClasses = $true
 )
 $ErrorActionPreference = 'Stop'
-if (-not $PolarionHome) { $PolarionHome = 'C:\Polarion' }
+if ([string]::IsNullOrWhiteSpace($PolarionHome)) {
+    if (-not [string]::IsNullOrWhiteSpace($env:POLARION_HOME)) {
+        $PolarionHome = $env:POLARION_HOME
+    } else {
+        $PolarionHome = 'C:\Polarion'
+    }
+}
+if ([string]::IsNullOrWhiteSpace($JdkHome)) {
+    if (-not [string]::IsNullOrWhiteSpace($env:JAVA_HOME)) {
+        $JdkHome = $env:JAVA_HOME
+    } else {
+        $JdkHome = 'C:\Program Files\Java\jdk-17'
+    }
+}
+$PolarionHome = (Resolve-Path -LiteralPath $PolarionHome).Path
+$JdkHome = (Resolve-Path -LiteralPath $JdkHome).Path
 
 $plugins = Join-Path $PolarionHome 'polarion\plugins'
+if (-not (Test-Path -LiteralPath $plugins -PathType Container)) {
+    throw "Polarion plug-ins directory was not found: $plugins. Set POLARION_HOME or pass -PolarionHome."
+}
+$sdk = Join-Path $PolarionHome 'polarion\SDK'
+if (-not (Test-Path -LiteralPath $sdk -PathType Container)) {
+    throw "Polarion SDK directory was not found: $sdk. Set PolarionHome to the Polarion installation root."
+}
 $servlet = Get-ChildItem $plugins -Filter 'javax.servlet_*.jar' | Select-Object -First 1
 $platform = Get-ChildItem $plugins -Directory -Filter 'com.polarion.platform_*' | Select-Object -First 1
 $repository = Get-ChildItem $plugins -Directory -Filter 'com.polarion.platform.repository_*' | Select-Object -First 1
