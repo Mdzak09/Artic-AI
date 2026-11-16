@@ -1,0 +1,15 @@
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-Name: Polarion AI Assistant
+Bundle-SymbolicName: com.zaamtech.polarion.aiassistant;singleton:=true
+Bundle-Version: 1.0.0.qualifier
+Bundle-Vendor: ZaamTech
+Require-Bundle: com.polarion.portal.tomcat;bundle-version="9.0.84",
+ com.polarion.platform,
+ com.polarion.platform.repository,
+ com.polarion.alm.ui,
+ com.polarion.alm.tracker
+Bundle-RequiredExecutionEnvironment: JavaSE-17
+Bundle-ClassPath: .
+Automatic-Module-Name: com.zaamtech.polarion.aiassistant
+

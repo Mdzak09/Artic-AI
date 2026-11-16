@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="csrf-token" content="{{CSRF_TOKEN}}">
+    <title>Arctic AI Administration</title>
+    <link rel="stylesheet" href="/polarion/aiassistant/assets/admin.css">
+    <script src="/polarion/aiassistant/assets/admin.js" defer></script>
+</head>
+<body>
+    <main class="admin-shell">
+        <header class="page-heading">
+            <div class="heading-icon" aria-hidden="true">AI</div>
+            <div>
+                <p class="eyebrow">GLOBAL ADMINISTRATION</p>
+                <h1>Arctic AI</h1>
+                <p class="intro">Configure assistant availability, access, appearance, and provider settings.</p>
+            </div>
+            <span class="admin-badge">Global Administrator</span>
+        </header>
+
+        <div class="notice" id="notice" role="status" aria-live="polite" hidden></div>
+
+        <div class="layout">
+            <nav class="section-nav" aria-label="Arctic AI settings">
+                <button class="nav-item active" data-section="general" type="button">General Settings</button>
+                <button class="nav-item" data-section="access" type="button">Access Control</button>
+                <button class="nav-item" data-section="appearance" type="button">Appearance</button>
+                <button class="nav-item" data-section="provider" type="button">AI Service</button>
+                <button class="nav-item" data-section="diagnostics" type="button">Diagnostics &amp; About</button>
+            </nav>
+
+            <div class="settings-content" id="settings-content" aria-busy="true">
+                <section class="settings-section active" data-panel="general">
+                    <div class="section-heading">
+                        <div><h2>General Settings</h2><p>Control the assistant's global availability and identity.</p></div>
+                    </div>
+                    <article class="card">
+                        <label class="switch-row" for="enabled">
+                            <span><strong>Enable Arctic AI</strong><small>When disabled, the header button is hidden and chat requests are rejected.</small></span>
+                            <input id="enabled" name="enabled" type="checkbox">
+                        </label>
+                        <label class="switch-row" for="showHeaderButton">
+                            <span><strong>Show AI Button in Polarion Header</strong><small>Show the header button to users authorized to use the assistant.</small></span>
+                            <input id="showHeaderButton" name="showHeaderButton" type="checkbox" checked>
+                        </label>
+                        <label class="field" for="name">
+                            <span>Assistant name</span>
+                            <input id="name" name="name" type="text" maxlength="40" autocomplete="off" required>
+                            <small>This name appears on the header button and throughout the chat panel.</small>
+                        </label>
+                    </article>
+                </section>
+
+                <section class="settings-section" data-panel="access" hidden>
+                    <div class="section-heading">
+                        <div><h2>Access Control</h2><p>Choose who can use the assistant. These rules are enforced by the server.</p></div>
+                    </div>
+                    <article class="card">
+                        <label class="field" for="accessMode">
+                            <span>Who can use Arctic AI?</span>
+                            <select id="accessMode" name="accessMode">
+                                <option value="all">All authenticated Polarion users</option>
+                                <option value="roles">Selected global roles</option>
+                            </select>
+                        </label>
+                        <div id="role-picker" class="role-picker" hidden>
+                            <div class="field-caption"><strong>Allowed global roles</strong><small>Selected roles combine using OR: matching any one role grants access.</small></div>
+                            <div id="role-options" class="role-options"><p class="loading">Loading Polarion rolesâ€¦</p></div>
+                        </div>
+                        <p class="help-note">Global Administrators retain assistant access as a recovery path. Project administrators are not treated as Global Administrators.</p>
+                        <p class="help-note">This Polarion SDK exposes global role assignments for server-side checks. It does not expose user-group membership through the documented <code>IUserGroup</code> API, so group and individual-user pickers are not offered.</p>
+                    </article>
+                </section>
+
+                <section class="settings-section" data-panel="appearance" hidden>
+                    <div class="section-heading">
+                        <div><h2>Appearance</h2><p>Set the shared look and initial layout for assistant users.</p></div>
+                    </div>
+                    <article class="card form-grid">
+                        <label class="field" for="theme">
+                            <span>Theme mode</span>
+                            <select id="theme" name="theme">
+                                <option value="system">System Default</option>
+                                <option value="light">Light</option>
+                                <option value="dark">Dark</option>
+                            </select>
+                        </label>
+                        <label class="field" for="accentColor">
+                            <span>Accent color</span>
+                            <span class="color-field"><input id="accentColor" name="accentColor" type="color" value="#1280a6"><output id="accent-value">#1280A6</output></span>
+                            <small>Preview the accent below before saving.</small>
+                        </label>
+                        <label class="field" for="sidebarWidth">
+                            <span>Default sidebar width</span>
+                            <span class="range-field"><input id="sidebarWidth" name="sidebarWidth" type="range" min="360" max="600" step="10"><output id="width-value"></output></span>
+                            <small>Users can still resize their open panel.</small>
+                        </label>
+                        <label class="field" for="headerPlacement">
+                            <span>Header button placement</span>
+                            <select id="headerPlacement" name="headerPlacement">
+                                <option value="right">Fixed near the right side of the top ribbon</option>
+                                <option value="branding">Beside detected Siemens/Polarion branding</option>
+                            </select>
+                            <small>Branding placement depends on theme-specific header markup.</small>
+                        </label>
+                        <div class="preview-wrap">
+                            <span class="field-caption"><strong>Preview Changes</strong><small>Preview only; changes become live after saving.</small></span>
+                            <div class="preview-card" id="preview-card">
+                                <div class="preview-title"><span class="preview-mark">AI</span><strong id="preview-name">AI</strong></div>
+                                <p>Your assistant interface will use this accent.</p>
+                                <button type="button" id="preview-button">Send</button>
+                            </div>
+                        </div>
+                    </article>
+                </section>
+
+                <section class="settings-section" data-panel="provider" hidden>
+                    <div class="section-heading">
+                        <div><h2>AI Service Configuration</h2><p>Configure the existing server-side chat provider.</p></div>
+                    </div>
+                    <article class="card">
+                        <label class="switch-row" for="mockMode">
+                            <span><strong>Development mock mode</strong><small>Use the local development response without contacting an AI provider.</small></span>
+                            <input id="mockMode" name="mockMode" type="checkbox">
+                        </label>
+                        <div class="form-grid provider-fields" id="provider-fields">
+                            <label class="field" for="endpoint"><span>Provider endpoint URL</span><input id="endpoint" name="endpoint" type="url" maxlength="2048" placeholder="https://provider.example/v1/chat/completions"></label>
+                            <label class="field" for="model"><span>Model identifier</span><input id="model" name="model" type="text" maxlength="128" placeholder="model-name"></label>
+                            <label class="field" for="timeoutSeconds"><span>Request timeout</span><span class="unit-field"><input id="timeoutSeconds" name="timeoutSeconds" type="number" min="5" max="120"><span>seconds</span></span></label>
+                        </div>
+                        <div class="secret-status"><span>Server API key</span><strong id="key-status">Checkingâ€¦</strong><small>The key is read from the Polarion service environment variable <code>ZAAMTECH_AI_API_KEY</code>. Its value is never sent to this page.</small></div>
+                        <div class="test-row"><button class="secondary-button" id="test-connection" type="button">Test Connection</button><span id="connection-status" role="status">No test run yet.</span></div>
+                    </article>
+                </section>
+
+                <section class="settings-section" data-panel="diagnostics" hidden>
+                    <div class="section-heading">
+                        <div><h2>Diagnostics and About</h2><p>Review runtime readiness without exposing credentials or provider responses.</p></div>
+                    </div>
+                    <article class="card diagnostics">
+                        <div><span>Admin settings API</span><strong id="diagnostic-servlet">Loadingâ€¦</strong></div>
+                        <div><span>Repository settings</span><strong id="diagnostic-storage">Loadingâ€¦</strong></div>
+                        <div><span>Polarion role lookup</span><strong id="diagnostic-roles">Loadingâ€¦</strong></div>
+                        <div><span>Assistant state</span><strong id="diagnostic-enabled">Loadingâ€¦</strong></div>
+                        <div><span>Provider mode</span><strong id="diagnostic-mode">Loadingâ€¦</strong></div>
+                        <div><span>Provider connectivity</span><strong id="diagnostic-provider">Not tested</strong></div>
+                        <div><span>API key</span><strong id="diagnostic-key">Loadingâ€¦</strong></div>
+                        <div><span>Header placement</span><strong id="diagnostic-header">Loadingâ€¦</strong></div>
+                        <p id="header-warning" class="warning" hidden></p>
+                        <hr>
+                        <p><strong>Arctic AI</strong> is an extension of the Polarion AI Assistant. It does not collect Polarion page content automatically. Chat requests include only the conversation text entered in the assistant.</p>
+                        <p>Provider endpoint and model settings are stored in Polarion's global repository configuration. Credentials remain in the server environment.</p>
+                    </article>
+                </section>
+
+                <footer class="actions">
+                    <button class="danger-quiet" id="restore-defaults" type="button">Restore Defaults</button>
+                    <span class="action-spacer"></span>
+                    <button class="secondary-button" id="cancel" type="button">Cancel</button>
+                    <button class="primary-button" id="save" type="button">Save Changes</button>
+                </footer>
+            </div>
+        </div>
+    </main>
+</body>
+</html>

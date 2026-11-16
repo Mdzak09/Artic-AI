@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<module id="com.zaamtech.polarion.aiassistant" version="1.0.0">
+    <contribution configuration-id="com.polarion.xray.webui.administrationPageExtenders">
+        <extender id="settings"
+                  name="Settings"
+                  parentNodeId="arctic-ai"
+                  parentNodeName="Arctic AI"
+                  parentNodeIconUrl="/polarion/icons/default/topicIcons/Tools_157-wrench.png"
+                  iconUrl="/polarion/icons/default/topicIconsSmall/Tools_158-wrench-2.png"
+                  pageUrl="/polarion/aiassistant/admin?scope=$scope$"
+                  projectScope="false"
+                  projectGroupScope="false"
+                  repositoryScope="true"/>
+    </contribution>
+</module>
