@@ -1,0 +1,26 @@
+# Eclipse/Java generated output
+/bin/
+/build/
+*.class
+
+# Local logs, temporary files, and prior project backup archives
+*.log
+*.tmp
+*.swp
+/backup-*.zip
+
+# Local secrets and credentials
+.env
+.env.*
+!.env.example
+**/*secrets*
+*.pem
+*.key
+*.p12
+*.pfx
+*.jks
+*.keystore
+
+# Eclipse workspace metadata and lock files
+.metadata/
+*.lock
